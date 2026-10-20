@@ -31,6 +31,19 @@ export DEFAULT_DOMAIN=yourcompany.com API_KEY=$(openssl rand -hex 32) UI_PASSWOR
 .venv/bin/uvicorn app.main:app --host 0.0.0.0 --port 8000
 ```
 
+### Docker
+
+All settings come from environment variables; the SQLite DB lives in the `/data` volume.
+
+```bash
+cp .env.example .env   # fill in values
+docker compose up -d --build
+# or: docker build -t m365-provisioner . && docker run -d -p 8000:8000 --env-file .env -v provisioner-data:/data m365-provisioner
+```
+
+For certificate auth, either set `CERT_PRIVATE_KEY` to the PEM (newlines may be written as `\n`) or mount
+the file and set `CERT_PRIVATE_KEY_PATH`. Together with `CERT_THUMBPRINT`.
+
 Put it behind HTTPS (IIS/ARR, nginx, Caddy) - API keys and the temp password travel in the clear otherwise.
 Set `DRY_RUN=true` first to try the whole flow without touching M365.
 

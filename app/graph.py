@@ -21,7 +21,9 @@ class GraphError(Exception):
 def _msal_app() -> msal.ConfidentialClientApplication:
     global _app
     if _app is None:
-        if config.CERT_PRIVATE_KEY_PATH:
+        if config.CERT_PRIVATE_KEY:
+            cred = {"private_key": config.CERT_PRIVATE_KEY, "thumbprint": config.CERT_THUMBPRINT}
+        elif config.CERT_PRIVATE_KEY_PATH:
             with open(config.CERT_PRIVATE_KEY_PATH) as f:
                 cred = {"private_key": f.read(), "thumbprint": config.CERT_THUMBPRINT}
         else:

@@ -10,6 +10,8 @@ TENANT_ID = os.getenv("TENANT_ID", "")
 CLIENT_ID = os.getenv("CLIENT_ID", "")
 CLIENT_SECRET = os.getenv("CLIENT_SECRET", "")  # or use a certificate:
 CERT_PRIVATE_KEY_PATH = os.getenv("CERT_PRIVATE_KEY_PATH", "")
+# Or pass the PEM itself (handy in containers); literal "\n" sequences are expanded.
+CERT_PRIVATE_KEY = os.getenv("CERT_PRIVATE_KEY", "").replace("\\n", "\n")
 CERT_THUMBPRINT = os.getenv("CERT_THUMBPRINT", "")
 
 # Tenant defaults

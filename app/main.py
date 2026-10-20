@@ -17,7 +17,8 @@ from . import config, graph
 if not config.API_KEY or not config.UI_PASSWORD:
     raise RuntimeError("API_KEY and UI_PASSWORD must be set (refusing to start unauthenticated).")
 if not config.DRY_RUN and not (config.TENANT_ID and config.CLIENT_ID
-                               and (config.CLIENT_SECRET or config.CERT_PRIVATE_KEY_PATH)):
+                               and (config.CLIENT_SECRET or config.CERT_PRIVATE_KEY_PATH
+                                    or config.CERT_PRIVATE_KEY)):
     raise RuntimeError("TENANT_ID, CLIENT_ID and a secret/certificate are required unless DRY_RUN=true.")
 
 app = FastAPI(title="M365 Provisioner")
