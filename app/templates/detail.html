@@ -1,0 +1,23 @@
+{% extends "base.html" %}{% block body %}
+<p><a href="/">← All requests</a></p>
+<h1>Ticket #{{ r.ticket_id }} <span class="badge {{ r.status }}">{{ r.status }}</span></h1>
+<div class="card"><dl>
+<dt>Name</dt><dd>{{ r.request.display_name }}</dd>
+<dt>Sign-in (UPN)</dt><dd>{{ r.request.username }}@{{ r.request.domain }}</dd>
+<dt>Title / Dept</dt><dd>{{ r.request.job_title or "—" }} / {{ r.request.department or "—" }}</dd>
+<dt>Manager</dt><dd>{{ r.request.manager_upn or "—" }}</dd>
+<dt>Usage location</dt><dd>{{ r.request.usage_location }}</dd>
+<dt>Licenses</dt><dd>{{ r.request.licenses|join(", ") or "—" }}</dd>
+<dt>Groups</dt><dd>{{ r.request.groups|join(", ") or "—" }}</dd>
+<dt>Password</dt><dd>Delivered to the agent once, never shown here</dd>
+<dt>Approved by</dt><dd>{{ r.approved_by or "—" }}</dd>
+</dl></div>
+{% if r.status == "pending" %}
+<div class="card" style="display:flex;gap:12px">
+<form method="post" action="/requests/{{ r.id }}/approve"><button class="go">Approve &amp; create user</button></form>
+<form method="post" action="/requests/{{ r.id }}/reject"><button class="no">Reject</button></form>
+</div>{% endif %}
+{% if r.result %}<div class="card"><strong>Result</strong>
+{% if r.result.warnings %}<p class="badge pending">Created with warnings: {{ r.result.warnings|join("; ") }}</p>{% endif %}
+<pre>{{ r.result|tojson(indent=2) }}</pre></div>{% endif %}
+{% endblock %}

@@ -1,0 +1,19 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>M365 Provisioner</title>
+<style>
+:root{--bg:#f6f7f9;--fg:#1c2330;--card:#fff;--line:#dde1e8;--mut:#5d6778;--ok:#0f7b3f;--bad:#b3261e;--warn:#9a6700;--acc:#1f5fd1}
+@media(prefers-color-scheme:dark){:root{--bg:#12161d;--fg:#e6e9ef;--card:#1a202a;--line:#2b3340;--mut:#9aa4b5;--ok:#4cc38a;--bad:#ff7b72;--warn:#e3b341;--acc:#6ea0ff}}
+body{margin:0;background:var(--bg);color:var(--fg);font:15px/1.5 system-ui,sans-serif}
+main{max-width:960px;margin:0 auto;padding:24px 16px}
+h1{font-size:20px;margin:0 0 4px}a{color:var(--acc)}
+.card{background:var(--card);border:1px solid var(--line);border-radius:8px;padding:16px;margin:12px 0}
+table{width:100%;border-collapse:collapse}th,td{text-align:left;padding:8px;border-bottom:1px solid var(--line);font-size:14px}
+.badge{padding:2px 8px;border-radius:99px;font-size:12px;border:1px solid currentColor}
+.pending{color:var(--warn)}.completed{color:var(--ok)}.failed,.rejected{color:var(--bad)}.approved{color:var(--acc)}
+button{font:inherit;padding:8px 16px;border-radius:6px;border:1px solid var(--line);background:var(--card);color:var(--fg);cursor:pointer}
+button.go{background:var(--ok);color:#fff;border-color:var(--ok)}button.no{color:var(--bad)}
+pre{background:var(--bg);padding:12px;border-radius:6px;overflow:auto;font-size:13px}
+dl{display:grid;grid-template-columns:160px 1fr;gap:6px 12px;margin:0}dt{color:var(--mut)}dd{margin:0;word-break:break-word}
+.note{color:var(--mut);font-size:13px}
+</style></head><body><main>{% block body %}{% endblock %}</main></body></html>

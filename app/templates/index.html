@@ -1,0 +1,12 @@
+{% extends "base.html" %}{% block body %}
+<h1>M365 user provisioning</h1>
+<p class="note">Mode: <strong>{{ "auto-approve" if auto else "manual approval" }}</strong>{% if dry %} · <strong>DRY RUN (Graph not called)</strong>{% endif %}</p>
+<div class="card">
+{% if not items %}<p class="note">No requests yet.</p>{% else %}
+<table><tr><th>Ticket</th><th>User</th><th>Status</th><th>Submitted (UTC)</th></tr>
+{% for i in items %}<tr>
+<td><a href="/requests/{{ i.id }}">#{{ i.ticket_id }}</a></td>
+<td>{{ i.request.display_name }} ({{ i.request.username }}@{{ i.request.domain }})</td>
+<td><span class="badge {{ i.status }}">{{ i.status }}</span></td>
+<td>{{ i.created_at }}</td></tr>{% endfor %}</table>{% endif %}
+</div>{% endblock %}
