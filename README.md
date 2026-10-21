@@ -68,17 +68,16 @@ curl -X POST https://provisioner.internal/api/requests -H "X-API-Key: $API_KEY" 
 Only `ticket_id`, `given_name`, `surname`, `user_principal_name` are required (`display_name` defaults to
 "given surname", `usage_location` to `DEFAULT_USAGE_LOCATION`). The UPN domain must be in `ALLOWED_DOMAINS`.
 Submitting the same `ticket_id` twice returns the existing request instead of creating a duplicate
-(rejected/failed ones can be resubmitted). The server always generates the temporary password; the user must
-change it at first sign-in.
+(rejected/failed ones can be resubmitted). The server generates the temporary password at submit time and returns it **once**, in the `POST` response
+(`temporary_password`), before approval; the user must change it at first sign-in.
 
 Poll `GET /api/requests/{id}` until `status` is `completed`, `failed` or `rejected`:
 ```json
 { "id": "…", "ticket_id": "1042", "status": "completed",
   "result": { "display_name": "Jane Doe", "user_principal_name": "aacosta@yourcompany.com",
-              "object_id": "…", "must_change_password": true, "warnings": [],
-              "temporary_password": "…" } }
+              "object_id": "…", "must_change_password": true, "warnings": [] } }
 ```
-`temporary_password` is returned **once**, then erased from the database. `warnings` lists any post-create
+`warnings` lists any post-create
 step (license) that failed while the user itself was created.
 
 ## Security notes

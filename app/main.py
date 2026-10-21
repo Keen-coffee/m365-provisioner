@@ -88,7 +88,7 @@ def execute(request_id: str) -> None:
     with db() as c:
         row = c.execute("SELECT * FROM requests WHERE id=?", (request_id,)).fetchone()
     payload = json.loads(row["payload"])
-    password = graph.generate_password()
+    password = row["password"] or graph.generate_password()
     try:
         if config.DRY_RUN:
             res = {"object_id": str(uuid.uuid4()), "dry_run": True, "warnings": [],
@@ -98,12 +98,11 @@ def execute(request_id: str) -> None:
         status = "completed"
         res.update({"display_name": payload["display_name"],
                     "must_change_password": True})
-        pw = password
     except Exception as e:  # noqa: BLE001 - surface any failure to the ticket
-        status, res, pw = "failed", {"error": str(e)}, None
+        status, res = "failed", {"error": str(e)}
     with db() as c:
-        c.execute("UPDATE requests SET status=?, result=?, password=?, updated_at=? WHERE id=?",
-                  (status, json.dumps(res), pw, now(), request_id))
+        c.execute("UPDATE requests SET status=?, result=?, password=NULL, updated_at=? WHERE id=?",
+                  (status, json.dumps(res), now(), request_id))
 
 
 def approve(request_id: str, who: str) -> None:
@@ -115,14 +114,12 @@ def approve(request_id: str, who: str) -> None:
     execute(request_id)
 
 
-def public_view(row: sqlite3.Row, reveal_password: bool = False) -> Dict[str, Any]:
+def public_view(row: sqlite3.Row) -> Dict[str, Any]:
     out = {"id": row["id"], "ticket_id": row["ticket_id"], "status": row["status"],
            "request": json.loads(row["payload"]), "approved_by": row["approved_by"],
            "created_at": row["created_at"], "updated_at": row["updated_at"]}
     if row["result"]:
         out["result"] = json.loads(row["result"])
-        if reveal_password and row["status"] == "completed" and row["password"]:
-            out["result"]["temporary_password"] = row["password"]
     return out
 
 
@@ -137,6 +134,8 @@ def submit(body: NewUser):
     payload["usage_location"] = payload["usage_location"] or config.DEFAULT_USAGE_LOCATION
     payload["display_name"] = payload["display_name"] or "%s %s" % (payload["given_name"], payload["surname"])
 
+    password = graph.generate_password()
+
     with db() as c:
         # Idempotency: the same ticket never creates two requests unless the earlier one was rejected/failed.
         dup = c.execute("SELECT * FROM requests WHERE ticket_id=? AND status NOT IN ('rejected','failed') "
@@ -145,31 +144,30 @@ def submit(body: NewUser):
             return public_view(dup)
         rid = str(uuid.uuid4())
         c.execute("INSERT INTO requests VALUES (?,?,?,?,?,?,?,?,?)",
-                  (rid, payload["ticket_id"], "pending", json.dumps(payload), None, None, None, now(), now()))
+                  (rid, payload["ticket_id"], "pending", json.dumps(payload), password, None, None, now(), now()))
     if config.AUTO_APPROVE:
         approve(rid, "auto")
     with db() as c:
-        return public_view(c.execute("SELECT * FROM requests WHERE id=?", (rid,)).fetchone())
+        out = public_view(c.execute("SELECT * FROM requests WHERE id=?", (rid,)).fetchone())
+    out["temporary_password"] = password  # only ever returned here, on creation
+    return out
 
 
 @app.get("/api/requests/{request_id}", dependencies=[Depends(require_api_key)])
 def get_request(request_id: str):
-    """Poll this. When status is 'completed' the temp password is included ONCE, then erased."""
+    """Poll this until status is completed/failed/rejected."""
     with db() as c:
         row = c.execute("SELECT * FROM requests WHERE id=?", (request_id,)).fetchone()
         if not row:
             raise HTTPException(404, "Not found")
-        out = public_view(row, reveal_password=True)
-        if row["status"] == "completed" and row["password"]:
-            c.execute("UPDATE requests SET password=NULL WHERE id=?", (request_id,))
-        return out
+        return public_view(row)
 
 
 @app.get("/api/requests", dependencies=[Depends(require_api_key)])
 def find_by_ticket(ticket_id: str):
     with db() as c:
         rows = c.execute("SELECT * FROM requests WHERE ticket_id=? ORDER BY created_at DESC", (ticket_id,)).fetchall()
-    return [public_view(r) for r in rows]  # never reveals passwords; use GET /{id} for that
+    return [public_view(r) for r in rows]  # never reveals passwords
 
 
 # ---------- approval UI ----------
