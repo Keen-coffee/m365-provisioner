@@ -16,7 +16,7 @@ CERT_THUMBPRINT = os.getenv("CERT_THUMBPRINT", "")
 
 # Tenant defaults
 DEFAULT_DOMAIN = os.getenv("DEFAULT_DOMAIN", "contoso.com")
-ALLOWED_DOMAINS = [d.strip().lower() for d in os.getenv("ALLOWED_DOMAINS", DEFAULT_DOMAIN).split(",") if d.strip()]
+ALLOWED_DOMAINS = [d.strip().lower() for d in (os.getenv("ALLOWED_DOMAINS") or DEFAULT_DOMAIN).split(",") if d.strip()]
 DEFAULT_USAGE_LOCATION = os.getenv("DEFAULT_USAGE_LOCATION", "US")
 
 # Behaviour
