@@ -13,8 +13,7 @@ ticket -> Claude -> POST /api/requests -> [pending] -> Approve button -> Graph -
 
 1. Entra admin center -> App registrations -> New. Single tenant. Note **Tenant ID** and **Client ID**.
 2. API permissions -> Microsoft Graph -> **Application** permissions:
-   - `User.ReadWrite.All` (create user, set manager, assign license)
-   - `GroupMember.ReadWrite.All` (add to groups)
+   - `User.ReadWrite.All` (create user, assign license)
    - `Organization.Read.All` (resolve license names like `SPE_E3`)
    - then **Grant admin consent**.
 3. Credentials: prefer a **certificate** (set `CERT_PRIVATE_KEY_PATH` + `CERT_THUMBPRINT`); a client secret
@@ -61,24 +60,26 @@ Set `DRY_RUN=true` first to try the whole flow without touching M365.
 Submit:
 ```bash
 curl -X POST https://provisioner.internal/api/requests -H "X-API-Key: $API_KEY" -H "Content-Type: application/json" -d '{
-  "ticket_id": "1042", "given_name": "Jane", "surname": "Doe", "username": "jane.doe",
-  "job_title": "Analyst", "department": "Finance", "manager_upn": "boss@yourcompany.com",
-  "licenses": ["SPE_E3"], "groups": ["Finance Team"]
+  "ticket_id": "1042", "display_name": "Alejandro Acosta", "given_name": "Alejandro", "surname": "Acosta",
+  "user_principal_name": "aacosta@yourcompany.com", "department": "Service", "job_title": "Service Technician",
+  "employee_id": "998101", "usage_location": "US", "license": "SPB"
 }'
 ```
-Only `ticket_id`, `given_name`, `surname`, `username` are required. Submitting the same `ticket_id` twice
-returns the existing request instead of creating a duplicate (rejected/failed ones can be resubmitted).
-If `password` is omitted the server generates one; the user must change it at first sign-in.
+Only `ticket_id`, `given_name`, `surname`, `user_principal_name` are required (`display_name` defaults to
+"given surname", `usage_location` to `DEFAULT_USAGE_LOCATION`). The UPN domain must be in `ALLOWED_DOMAINS`.
+Submitting the same `ticket_id` twice returns the existing request instead of creating a duplicate
+(rejected/failed ones can be resubmitted). The server always generates the temporary password; the user must
+change it at first sign-in.
 
 Poll `GET /api/requests/{id}` until `status` is `completed`, `failed` or `rejected`:
 ```json
 { "id": "…", "ticket_id": "1042", "status": "completed",
-  "result": { "username": "jane.doe", "user_principal_name": "jane.doe@yourcompany.com",
+  "result": { "display_name": "Jane Doe", "user_principal_name": "aacosta@yourcompany.com",
               "object_id": "…", "must_change_password": true, "warnings": [],
               "temporary_password": "…" } }
 ```
 `temporary_password` is returned **once**, then erased from the database. `warnings` lists any post-create
-step (manager/license/group) that failed while the user itself was created.
+step (license) that failed while the user itself was created.
 
 ## Security notes
 

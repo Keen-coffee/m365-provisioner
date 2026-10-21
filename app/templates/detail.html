@@ -3,12 +3,11 @@
 <h1>Ticket #{{ r.ticket_id }} <span class="badge {{ r.status }}">{{ r.status }}</span></h1>
 <div class="card"><dl>
 <dt>Name</dt><dd>{{ r.request.display_name }}</dd>
-<dt>Sign-in (UPN)</dt><dd>{{ r.request.username }}@{{ r.request.domain }}</dd>
+<dt>Sign-in (UPN)</dt><dd>{{ r.request.user_principal_name }}</dd>
 <dt>Title / Dept</dt><dd>{{ r.request.job_title or "—" }} / {{ r.request.department or "—" }}</dd>
-<dt>Manager</dt><dd>{{ r.request.manager_upn or "—" }}</dd>
+<dt>Employee ID</dt><dd>{{ r.request.employee_id or "—" }}</dd>
 <dt>Usage location</dt><dd>{{ r.request.usage_location }}</dd>
-<dt>Licenses</dt><dd>{{ r.request.licenses|join(", ") or "—" }}</dd>
-<dt>Groups</dt><dd>{{ r.request.groups|join(", ") or "—" }}</dd>
+<dt>License</dt><dd>{{ r.request.license or "—" }}</dd>
 <dt>Password</dt><dd>Delivered to the agent once, never shown here</dd>
 <dt>Approved by</dt><dd>{{ r.approved_by or "—" }}</dd>
 </dl></div>

@@ -72,21 +72,15 @@ def require_ui_user(request: Request, creds: HTTPBasicCredentials = Depends(basi
 # ---------- models ----------
 class NewUser(BaseModel):
     ticket_id: str = Field(..., min_length=1, max_length=64)
+    display_name: Optional[str] = Field(None, max_length=128)
     given_name: str = Field(..., min_length=1, max_length=64)
     surname: str = Field(..., min_length=1, max_length=64)
-    display_name: Optional[str] = Field(None, max_length=128)
-    username: str = Field(..., pattern=r"^[a-z0-9][a-z0-9._-]{0,63}$")
-    domain: Optional[str] = None
-    job_title: Optional[str] = None
+    user_principal_name: str = Field(..., pattern=r"^[A-Za-z0-9][A-Za-z0-9._-]{0,63}@[A-Za-z0-9.-]+$")
     department: Optional[str] = None
-    office_location: Optional[str] = None
-    mobile_phone: Optional[str] = None
-    manager_upn: Optional[str] = None
+    job_title: Optional[str] = None
+    employee_id: Optional[str] = Field(None, max_length=64)
     usage_location: Optional[str] = Field(None, pattern=r"^[A-Z]{2}$")
-    licenses: List[str] = []
-    groups: List[str] = []
-    password: Optional[str] = Field(None, min_length=12, max_length=256,
-                                    description="Optional. If omitted the server generates one.")
+    license: Optional[str] = Field(None, description="SKU part number or GUID, e.g. SPB")
 
 
 # ---------- core ----------
@@ -94,15 +88,15 @@ def execute(request_id: str) -> None:
     with db() as c:
         row = c.execute("SELECT * FROM requests WHERE id=?", (request_id,)).fetchone()
     payload = json.loads(row["payload"])
-    password = row["password"] or graph.generate_password()
+    password = graph.generate_password()
     try:
         if config.DRY_RUN:
             res = {"object_id": str(uuid.uuid4()), "dry_run": True, "warnings": [],
-                   "user_principal_name": "%s@%s" % (payload["username"], payload["domain"])}
+                   "user_principal_name": payload["user_principal_name"]}
         else:
             res = graph.create_user(payload, password)
         status = "completed"
-        res.update({"username": payload["username"], "display_name": payload["display_name"],
+        res.update({"display_name": payload["display_name"],
                     "must_change_password": True})
         pw = password
     except Exception as e:  # noqa: BLE001 - surface any failure to the ticket
@@ -136,13 +130,12 @@ def public_view(row: sqlite3.Row, reveal_password: bool = False) -> Dict[str, An
 @app.post("/api/requests", status_code=201, dependencies=[Depends(require_api_key)])
 def submit(body: NewUser):
     payload = body.model_dump() if hasattr(body, "model_dump") else body.dict()
-    domain = (payload["domain"] or config.DEFAULT_DOMAIN).lower()
+    payload["user_principal_name"] = payload["user_principal_name"].lower()
+    domain = payload["user_principal_name"].split("@", 1)[1]
     if domain not in config.ALLOWED_DOMAINS:
-        raise HTTPException(422, "domain must be one of %s" % config.ALLOWED_DOMAINS)
-    payload["domain"] = domain
+        raise HTTPException(422, "UPN domain must be one of %s" % config.ALLOWED_DOMAINS)
     payload["usage_location"] = payload["usage_location"] or config.DEFAULT_USAGE_LOCATION
     payload["display_name"] = payload["display_name"] or "%s %s" % (payload["given_name"], payload["surname"])
-    password = payload.pop("password")
 
     with db() as c:
         # Idempotency: the same ticket never creates two requests unless the earlier one was rejected/failed.
@@ -152,7 +145,7 @@ def submit(body: NewUser):
             return public_view(dup)
         rid = str(uuid.uuid4())
         c.execute("INSERT INTO requests VALUES (?,?,?,?,?,?,?,?,?)",
-                  (rid, payload["ticket_id"], "pending", json.dumps(payload), password, None, None, now(), now()))
+                  (rid, payload["ticket_id"], "pending", json.dumps(payload), None, None, None, now(), now()))
     if config.AUTO_APPROVE:
         approve(rid, "auto")
     with db() as c:
