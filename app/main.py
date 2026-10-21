@@ -185,8 +185,8 @@ def index(request: Request, user: str = Depends(require_ui_user)):
     with db() as c:
         rows = c.execute("SELECT * FROM requests ORDER BY (status='pending') DESC, created_at DESC LIMIT 200").fetchall()
     items = [public_view(r) for r in rows]
-    return templates.TemplateResponse("index.html", {"request": request, "items": items,
-                                                     "auto": config.AUTO_APPROVE, "dry": config.DRY_RUN})
+    return templates.TemplateResponse(request, "index.html", {"items": items,
+                                                       "auto": config.AUTO_APPROVE, "dry": config.DRY_RUN})
 
 
 @app.get("/requests/{request_id}")
@@ -195,8 +195,8 @@ def detail(request: Request, request_id: str, user: str = Depends(require_ui_use
         row = c.execute("SELECT * FROM requests WHERE id=?", (request_id,)).fetchone()
     if not row:
         raise HTTPException(404, "Not found")
-    return templates.TemplateResponse("detail.html", {"request": request, "r": public_view(row),
-                                                      "json": json.dumps(public_view(row), indent=2)})
+    return templates.TemplateResponse(request, "detail.html", {"r": public_view(row),
+                                                        "json": json.dumps(public_view(row), indent=2)})
 
 
 @app.post("/requests/{request_id}/approve")
